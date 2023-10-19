@@ -1,0 +1,18 @@
+version: "3"
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - $SSH_AUTH_SOCK:$SSH_AUTH_SOCK
+      - ~/Documents:/host
+    environment:
+      SSH_AUTH_SOCK: $SSH_AUTH_SOCK
+    ports:
+      # Create React App
+      - "3000:3000"
+      # Vite
+      - "5173:5173"
+      # Backend
+      - "8080:8080"
