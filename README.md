@@ -21,7 +21,7 @@ have to manually edit Dockerfiles, `docker-compose.yml`s, and entrypoint scripts
 
 The process can generally be broken down like this:
 
-1. Use Docker Compose to mount volumes like project directories and pass in environment variables.
+1. Mount volumes like project directories and pass in environment variables.
    - You can mount and pass an SSH authorization socket if you'd like the container to share the
      host's SSH key for things like Git operations.
 2. Ensure the Dockerfile copies in any files and scripts you'd like the container to use, and calls
@@ -29,7 +29,7 @@ The process can generally be broken down like this:
    - In my case, I copied in a Nix script that represents the packages to install with Nix.
 3. Ensure your entrypoint script handles any bootstrapping-related steps.
    - Note that, if you passed in an SSH authorization socket, SSH authorization can only happen
-     here in the entrypoint step. This happens since Docker only mounts volumes and passes in
+     past the Dockerfile step. This happens since Docker only mounts volumes and passes in
      environment variables after running the Dockerfile.
 4. Build the container, run it in the background, and open a shell in it after the entrypoint
    script finishes up.
