@@ -2,36 +2,36 @@
 
 A base Docker image for containerizing my command line tools and dotfiles.
 
-Sometimes, projects will opt to isolate development environments in containers. This usually has
-decent integration with editors like JetBrains editors or VSCode, but not so much for Vim - and by
-extension, Neovim. This is a problem since Neovim's LSPs rely on being in the same environment,
-which means you have to either:
+There's plenty of situations where tools, like Neovim's LSPs, rely on being in the same environment
+as your project. However, since some projects nowadays isolate these environments in containers, the
+only way to accomplish this is to replicate them inside the host - which defeats the purpose - or to
+install your tools in the container instead. This opts for the latter and provides a starting point
+for those seeking to do the same thing. Note that this will require you to modify your projects'
+Dockerfiles and such, so be careful about pushing them, especially if your team probably won't be
+okay with it.
 
-- Install the necessary tooling and dependencies to replicate the environment in the host, which
-  defeats the purpose of containers and can be a headache to manage.
-- Install Vim and related tooling in the container, which must be done every time the container is
-  built, but that's something that may not happen very often.
+## The Gist
 
-This opts for the latter since it maintains the element of isolation, but keep in mind that there
-could be other solutions I'm not aware of.
+1. Mount volumes like your project directories and pass in the necessary environment variables.
+2. Use whatever package managers are available in your base image to install all your packages.
+3. Use an entrypoint script to bootstrap your environment _only_ when the container is first run.
+4. Use `tail -f /dev/null` to keep the container running when spun up.
+5. When you're ready, spin up your container in the background and open up your favorite shell.
 
-While this image can be used on its own, it's ultimately intended to be used as a base so you have
-an idea of how to integrate your tools into existing Docker configurations. In other words, you'll
-have to manually edit Dockerfiles, `docker-compose.yml`s, and entrypoint scripts to do so.
+For an example of how this is done, take a look at the relevant files in the repo.
 
-The process can generally be broken down like this:
+## Possible Catches
 
-1. Mount volumes like project directories and pass in environment variables.
-   - You can mount and pass an SSH authorization socket if you'd like the container to share the
-     host's SSH key for things like Git operations.
-2. Ensure the Dockerfile copies in any files and scripts you'd like the container to use, and calls
-   an entrypoint script if needed.
-   - In my case, I copied in a Nix script that represents the packages to install with Nix.
-3. Ensure your entrypoint script handles any bootstrapping-related steps.
-   - Note that, if you passed in an SSH authorization socket, SSH authorization can only happen
-     past the Dockerfile step. This happens since Docker only mounts volumes and passes in
-     environment variables after running the Dockerfile.
-4. Build the container, run it in the background, and open a shell in it after the entrypoint
-   script finishes up.
+While the gist is conceptually on the simpler side, there are a number of catches involved that may
+make the process a bit more complicated. It's worth remembering that this is far from a perfect
+solution and should be treated as such.
 
-For more information, take a look at the relevant files in the repo.
+- If you want your host to share its SSH key with the container, you need to add your key to the SSH
+  agent on the host, then mount the SSH authorization socket. This _does_ make git operations on the
+  container very convenient once set up but you must add it to the agent for every new session on
+  the host, and even then, Mac hosts can't share Unix sockets with a Linux container. However, there
+  _is_ a [workaround you can try](https://stackoverflow.com/a/54526131).
+- To avoid permission conflicts over mounted volumes, you have to create a new user in the container
+  with the same user and group IDs as your host's user. However, you have to be mindful about which
+  parts of your entrypoint should be run as root or the new user. In my case, I wanted to apply my
+  dotfiles to said new user, so I had to run `yadm clone ...` as them.
